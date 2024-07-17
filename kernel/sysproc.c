@@ -70,7 +70,6 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
-  backtrace();
   return 0;
 }
 
@@ -95,17 +94,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-
-// lab4-3
-uint64 sys_sigreturn(void) {
-  struct proc* p = myproc();
-  // trapframecopy must have the copy of trapframe
-  if (p->trapframecopy != p->trapframe + 512) {
-    return -1;
-  }
-  memmove(p->trapframe, p->trapframecopy, sizeof(struct trapframe));   // restore the trapframe
-  p->passedticks = 0;     // prevent re-entrant
-  p->trapframecopy = 0;    // ÷√¡„
-  return p->trapframe->a0;	// ∑µªÿa0,±‹√‚±ª∑µªÿ÷µ∏≤∏«
 }
