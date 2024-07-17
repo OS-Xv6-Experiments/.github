@@ -977,20 +977,20 @@ uptime:
  ret
  5c2:	8082                	ret
 
-00000000000005c4 <trace>:
-.global trace
-trace:
- li a7, SYS_trace
+00000000000005c4 <sigalarm>:
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
  5c4:	48d9                	li	a7,22
  ecall
  5c6:	00000073          	ecall
  ret
  5ca:	8082                	ret
 
-00000000000005cc <sysinfo>:
-.global sysinfo
-sysinfo:
- li a7, SYS_sysinfo
+00000000000005cc <sigreturn>:
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
  5cc:	48dd                	li	a7,23
  ecall
  5ce:	00000073          	ecall

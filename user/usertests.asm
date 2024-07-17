@@ -1896,7 +1896,7 @@ badarg(char *s)
   if(pid == 0){
     1242:	12051463          	bnez	a0,136a <copyinstr2+0x1b8>
     1246:	00007797          	auipc	a5,0x7
-    124a:	44278793          	addi	a5,a5,1090 # 8688 <big.1275>
+    124a:	44278793          	addi	a5,a5,1090 # 8688 <big.1278>
     124e:	00008697          	auipc	a3,0x8
     1252:	43a68693          	addi	a3,a3,1082 # 9688 <__global_pointer$+0x910>
       big[i] = 'x';
@@ -3611,9 +3611,9 @@ badarg(char *s)
     2296:	6145                	addi	sp,sp,48
     2298:	8082                	ret
     229a:	00006797          	auipc	a5,0x6
-    229e:	2ee78793          	addi	a5,a5,750 # 8588 <args.1864>
+    229e:	2ee78793          	addi	a5,a5,750 # 8588 <args.1867>
     22a2:	00006697          	auipc	a3,0x6
-    22a6:	3de68693          	addi	a3,a3,990 # 8680 <args.1864+0xf8>
+    22a6:	3de68693          	addi	a3,a3,990 # 8680 <args.1867+0xf8>
       args[i] = "bigargs test: failed\n                                                                                                                                                                                                       ";
     22aa:	00005717          	auipc	a4,0x5
     22ae:	9d670713          	addi	a4,a4,-1578 # 6c80 <malloc+0xfe8>
@@ -3623,7 +3623,7 @@ badarg(char *s)
     22b6:	fed79ee3          	bne	a5,a3,22b2 <bigargtest+0x7c>
     args[MAXARG-1] = 0;
     22ba:	00006597          	auipc	a1,0x6
-    22be:	2ce58593          	addi	a1,a1,718 # 8588 <args.1864>
+    22be:	2ce58593          	addi	a1,a1,718 # 8588 <args.1867>
     22c2:	0e05bc23          	sd	zero,248(a1)
     exec("echo", args);
     22c6:	00004517          	auipc	a0,0x4
@@ -9453,20 +9453,20 @@ uptime:
  ret
     58f0:	8082                	ret
 
-00000000000058f2 <trace>:
-.global trace
-trace:
- li a7, SYS_trace
+00000000000058f2 <sigalarm>:
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
     58f2:	48d9                	li	a7,22
  ecall
     58f4:	00000073          	ecall
  ret
     58f8:	8082                	ret
 
-00000000000058fa <sysinfo>:
-.global sysinfo
-sysinfo:
- li a7, SYS_sysinfo
+00000000000058fa <sigreturn>:
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
     58fa:	48dd                	li	a7,23
  ecall
     58fc:	00000073          	ecall

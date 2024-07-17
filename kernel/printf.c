@@ -114,6 +114,19 @@ printf(char *fmt, ...)
     release(&pr.lock);
 }
 
+// print the return address - lab4-2
+void backtrace() {
+  uint64 fp = r_fp();    // 获取当前栈帧
+  uint64 top = PGROUNDUP(fp);    // 获取用户栈最高地址
+  uint64 bottom = PGROUNDDOWN(fp);    // 获取用户栈最低地址
+  for (;
+    fp >= bottom && fp < top;     // 终止条件
+    fp = *((uint64*)(fp - 16))    // 获取下一栈帧
+    ) {
+    printf("%p\n", *((uint64*)(fp - 8)));    // 输出当前栈中返回地址
+  }
+}
+
 void
 panic(char *s)
 {
@@ -121,6 +134,7 @@ panic(char *s)
   printf("panic: ");
   printf(s);
   printf("\n");
+  backtrace();
   panicked = 1; // freeze uart output from other CPUs
   for(;;)
     ;

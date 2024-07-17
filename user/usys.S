@@ -105,13 +105,13 @@ uptime:
  li a7, SYS_uptime
  ecall
  ret
-.global trace
-trace:
- li a7, SYS_trace
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
  ecall
  ret
-.global sysinfo
-sysinfo:
- li a7, SYS_sysinfo
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
  ecall
  ret

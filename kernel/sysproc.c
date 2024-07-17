@@ -1,8 +1,8 @@
 #include "types.h"
 #include "riscv.h"
-#include "param.h"
 #include "defs.h"
 #include "date.h"
+#include "param.h"
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
@@ -46,7 +46,6 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  
   addr = myproc()->sz;
   if(growproc(n) < 0)
     return -1;
@@ -58,7 +57,6 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-
 
   if(argint(0, &n) < 0)
     return -1;
@@ -72,24 +70,9 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+  backtrace();
   return 0;
 }
-
-
-#ifdef LAB_PGTBL
-int
-sys_pgaccess(void)
-{
-  // lab pgtbl: your code here.
-  uint64 buf;
-  int number;
-  uint64 ans;
-  if (argaddr(0, &buf) < 0) return -1;
-  if (argint(1, &number) < 0) return -1;
-  if (argaddr(2, &ans) < 0) return -1;
-  return pgaccess((void*)buf, number, (void*)ans);
-}
-#endif
 
 uint64
 sys_kill(void)
@@ -112,4 +95,17 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// lab4-3
+uint64 sys_sigreturn(void) {
+  struct proc* p = myproc();
+  // trapframecopy must have the copy of trapframe
+  if (p->trapframecopy != p->trapframe + 512) {
+    return -1;
+  }
+  memmove(p->trapframe, p->trapframecopy, sizeof(struct trapframe));   // restore the trapframe
+  p->passedticks = 0;     // prevent re-entrant
+  p->trapframecopy = 0;    // ÷√¡„
+  return p->trapframe->a0;	// ∑µªÿa0,±‹√‚±ª∑µªÿ÷µ∏≤∏«
 }

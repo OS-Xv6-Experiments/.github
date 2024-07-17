@@ -104,12 +104,8 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
-#ifdef LAB_NET
-extern uint64 sys_connect(void);
-#endif
-#ifdef LAB_PGTBL
-extern uint64 sys_pgaccess(void);
-#endif
+extern uint64 sys_sigalarm(void);
+extern uint64 sys_sigreturn(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,16 +129,10 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-#ifdef LAB_NET
-[SYS_connect] sys_connect,
-#endif
-#ifdef LAB_PGTBL
-[SYS_pgaccess] sys_pgaccess,
-#endif
+[SYS_sigalarm] sys_sigalarm,
+[SYS_sigreturn] sys_sigreturn,
 };
-
-
-
+ 
 void
 syscall(void)
 {
@@ -157,4 +147,22 @@ syscall(void)
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
+}
+
+// lab4-3
+uint64 sys_sigalarm(void) {
+  int interval;
+  uint64 handler;
+  struct proc* p;
+  // 要求时间间隔非负
+  if (argint(0, &interval) < 0 || argaddr(1, &handler) < 0 || interval < 0) {
+    return -1;
+  }
+  // lab4-3
+  p = myproc();
+  p->interval = interval;
+  p->handler = handler;
+  p->passedticks = 0;    // 重置过去时钟数
+
+  return 0;
 }

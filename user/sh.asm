@@ -2070,20 +2070,20 @@ uptime:
  ret
      e68:	8082                	ret
 
-0000000000000e6a <trace>:
-.global trace
-trace:
- li a7, SYS_trace
+0000000000000e6a <sigalarm>:
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
      e6a:	48d9                	li	a7,22
  ecall
      e6c:	00000073          	ecall
  ret
      e70:	8082                	ret
 
-0000000000000e72 <sysinfo>:
-.global sysinfo
-sysinfo:
- li a7, SYS_sysinfo
+0000000000000e72 <sigreturn>:
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
      e72:	48dd                	li	a7,23
  ecall
      e74:	00000073          	ecall

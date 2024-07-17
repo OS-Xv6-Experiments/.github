@@ -154,7 +154,7 @@ go(int which_child)
     } else if(what == 8){
       read(fd, buf, sizeof(buf));
       fc:	00001a17          	auipc	s4,0x1
-     100:	5aca0a13          	addi	s4,s4,1452 # 16a8 <buf.1242>
+     100:	5aca0a13          	addi	s4,s4,1452 # 16a8 <buf.1245>
      104:	a825                	j	13c <go+0xc4>
       close(open("grindir/../a", O_CREATE|O_RDWR));
      106:	20200593          	li	a1,514
@@ -612,7 +612,7 @@ go(int which_child)
      518:	952080e7          	jalr	-1710(ra) # e66 <exit>
       sbrk(6011);
      51c:	6505                	lui	a0,0x1
-     51e:	77b50513          	addi	a0,a0,1915 # 177b <buf.1242+0xd3>
+     51e:	77b50513          	addi	a0,a0,1915 # 177b <buf.1245+0xd3>
      522:	00001097          	auipc	ra,0x1
      526:	9cc080e7          	jalr	-1588(ra) # eee <sbrk>
      52a:	bee5                	j	122 <go+0xaa>
@@ -1917,20 +1917,20 @@ uptime:
  ret
      f04:	8082                	ret
 
-0000000000000f06 <trace>:
-.global trace
-trace:
- li a7, SYS_trace
+0000000000000f06 <sigalarm>:
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
      f06:	48d9                	li	a7,22
  ecall
      f08:	00000073          	ecall
  ret
      f0c:	8082                	ret
 
-0000000000000f0e <sysinfo>:
-.global sysinfo
-sysinfo:
- li a7, SYS_sysinfo
+0000000000000f0e <sigreturn>:
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
      f0e:	48dd                	li	a7,23
  ecall
      f10:	00000073          	ecall
