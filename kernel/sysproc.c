@@ -1,12 +1,11 @@
 #include "types.h"
 #include "riscv.h"
+#include "param.h"
 #include "defs.h"
 #include "date.h"
-#include "param.h"
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -47,6 +46,7 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
+  
   addr = myproc()->sz;
   if(growproc(n) < 0)
     return -1;
@@ -58,6 +58,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
+
 
   if(argint(0, &n) < 0)
     return -1;
@@ -73,6 +74,22 @@ sys_sleep(void)
   release(&tickslock);
   return 0;
 }
+
+
+#ifdef LAB_PGTBL
+int
+sys_pgaccess(void)
+{
+  // lab pgtbl: your code here.
+  uint64 buf;
+  int number;
+  uint64 ans;
+  if (argaddr(0, &buf) < 0) return -1;
+  if (argint(1, &number) < 0) return -1;
+  if (argaddr(2, &ans) < 0) return -1;
+  return pgaccess((void*)buf, number, (void*)ans);
+}
+#endif
 
 uint64
 sys_kill(void)
@@ -95,31 +112,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-
-uint64
-sys_sysinfo(void)
-{
-  struct sysinfo info;
-  freebytes(&info.freemem);
-  procnum(&info.nproc);
-
-  // a0寄存器作为系统调用的参数寄存器,从中取出存放 sysinfo 结构的用户态缓冲区指针
-  uint64 dstaddr;
-  argaddr(0, &dstaddr);
-
-  // 使用 copyout，结合当前进程的页表，获得进程传进来的指针（逻辑地址）对应的物理地址
-  // 然后将 &sinfo 中的数据复制到该指针所指位置，供用户进程使用。
-  if (copyout(myproc()->pagetable, dstaddr, (char*)&info, sizeof info) < 0)
-    return -1;
-
-  return 0;
-}
-
-uint64
-sys_trace(void)
-{
-  // 获取系统调用的参数
-  argint(0, &(myproc()->trace_mask));
-  return 0;
 }
