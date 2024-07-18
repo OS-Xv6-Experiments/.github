@@ -15,6 +15,10 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "memlayout.h"
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -287,12 +291,10 @@ uint64
 sys_open(void)
 {
   char path[MAXPATH];
-  char target[MAXPATH];
   int fd, omode;
   struct file *f;
   struct inode *ip;
   int n;
-  int inum[MAXSYMLINK];
 
   if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
     return -1;
@@ -322,51 +324,6 @@ sys_open(void)
     iunlockput(ip);
     end_op();
     return -1;
-  }
-
-  if(ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0)
-  {
-    int i;
-    for(i=0;i<MAXSYMLINK;i++)
-    {
-      inum[i]=ip->inum;
-      if(readi(ip,0,(uint64)target,0,MAXPATH)<=0)
-      {
-        iunlockput(ip);
-        end_op();
-        printf("open symlink failed\n");
-        return -1;
-      }
-      iunlockput(ip);
-      
-      if((ip=namei(target))==0)
-      {
-        printf("\"%s\" is not a valid path",target);
-        end_op();
-        return -1;
-      }
-      
-      for(int j=0;j<MAXSYMLINK;j++)
-      {
-        if(ip->inum==inum[j])
-        {
-          printf("Form a cirle\n");
-          end_op();
-          return -1;
-        }
-      }
-      ilock(ip);
-      if(ip->type != T_SYMLINK)
-        break;
-    }
-
-    if(i==MAXSYMLINK)
-    {
-      iunlockput(ip);
-      printf("The depth of links reaches the limit\n");
-      end_op();
-      return -1;
-    }
   }
 
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
@@ -532,32 +489,144 @@ sys_pipe(void)
   return 0;
 }
 
-int sys_symlink(void)
+uint64
+sys_mmap(void)
 {
-  char target[MAXPATH];
-  char path[MAXPATH];
-  struct inode* ip;
-
-  if(argstr(0,target,MAXPATH)<0||argstr(1,path,MAXPATH)<0)
+  uint64 addr;
+  int len,prot,flags,offset;
+  struct VMA* vma=0;
+  struct file* f;
+  struct proc* p;
+  p = myproc();
+  
+  if(argaddr(0,&addr)<0||argint(1,&len)<0||argint(2,&prot)<0||argint(3,&flags)<0||argfd(4,0,&f)<0||argint(5,&offset)<0)
   {
     return -1;
   }
-
-  begin_op();
-  if((ip=create(path,T_SYMLINK,0,0))==0)
-  {
-    end_op();
+  if (flags != MAP_SHARED && flags != MAP_PRIVATE) 
     return -1;
+  
+  if (flags == MAP_SHARED && f->writable == 0 && (prot & PROT_WRITE)) 
+    return -1;
+  
+  if(len<0||offset<0||offset%PGSIZE)
+    return -1;
+  
+  for(int i = 0;i<NVMA;i++)
+  {
+    if(p->vma[i].addr == 0)
+    {
+      vma = &p->vma[i];
+      break;
+    }
   }
 
-  if(writei(ip,0,(uint64)&target,0,strlen(target))!=strlen(target))
-  {
-    iunlockput(ip);
-    end_op();
+  if(vma==0)
     return -1;
+  
+  addr = TRAPFRAME - 10*PGSIZE;
+  for(int i=0;i<NVMA;i++)
+  {
+    if(p->vma[i].addr)
+    {
+       addr = max(p->vma[i].addr+p->vma[i].len,addr);
+    }
   }
 
-  iunlockput(ip);
-  end_op();
+  addr = PGROUNDUP(addr);
+  if(addr + len >TRAPFRAME)
+    return -1;
+  
+  vma->addr = addr;
+  vma->len = len;
+  vma->prot = prot;
+  vma->flags = flags;
+  vma->offset = offset;
+  vma->f = f;
+  filedup(f);
+  return addr;
+}
+
+uint64
+sys_munmap(void)
+{
+  uint64 addr,va;
+  int len;
+  struct VMA* vma=0;
+  struct proc* p = myproc();
+  
+  if(argaddr(0,&addr)<0||argint(1,&len)<0)
+    return -1;
+  
+  if(addr%PGSIZE || len<0)
+    return -1;
+  
+  for(int i=0;i<NVMA;i++)
+  {
+    if(p->vma[i].addr && addr >= p->vma[i].addr && addr <= p->vma[i].addr+p->vma[i].len)
+    {
+      vma = &p->vma[i];
+      break;
+    }
+  }
+  if(vma==0)
+    return -1;
+  
+  if(len==0)
+    return 0;
+  
+  int maxsize;
+  if(vma->flags & MAP_SHARED)
+  {
+    maxsize = ((MAXOPBLOCKS-4)/2)*BSIZE;
+    for(va=addr;va<addr+len;va+=PGSIZE)
+    {
+      pte_t* pte = walk(p->pagetable,va,0);
+      if(pte==0 || (*pte & PTE_D)==0)
+        continue;
+      uint range,size;
+      range = min(addr+len-va,PGSIZE);
+      size = min(maxsize,range);
+      for(int i=0;i<range;i+=size)
+      {
+        size=min(maxsize,range-i);
+        begin_op();
+        ilock(vma->f->ip);
+        if(writei(vma->f->ip,1,va+i,va-vma->addr+vma->offset+i,size)!=size)
+        {
+          iunlock(vma->f->ip);
+          end_op();
+          return -1;
+        }
+        iunlock(vma->f->ip);
+        end_op();
+      }
+    }
+  }
+  uvmunmap(p->pagetable,addr,(len-1)/PGSIZE+1,1);
+  if(addr==vma->addr && len==vma->len)
+  {
+    vma->addr = 0;
+    vma->len = 0;
+    vma->offset = 0;
+    vma->flags = 0;
+    vma->prot = 0;
+    fileclose(vma->f);
+    vma->f = 0;
+  }
+  else if(addr == vma->addr)
+  {
+    vma->addr += len;
+    vma->offset += len;
+    vma->len -= len;
+  }
+  else if(addr+len==vma->addr+vma->len)
+  {
+    vma->len-=len;
+  }
+  else
+  {
+    panic("failed munmap");
+  }
   return 0;
 }
